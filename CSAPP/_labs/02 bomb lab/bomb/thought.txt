@@ -1,0 +1,29 @@
+ phase_4:
+ {
+    edx=0xe
+    esi=0
+    edi=(rsp+8)
+    call
+    {
+
+        eax=edx-esi
+        //ecx=eax>>31
+        eax=(eax+eax>>31)>>1
+        ecx=rax+rsi
+        if(ecx<=edi)
+        {
+            eax=0
+            if(ecx>=edi)return
+            esi=rcx+1
+            call func4
+        }
+        else
+        {
+            edx=rcx-1
+            call func4
+            eax=eax*2
+            return
+        }
+        }
+
+ }
