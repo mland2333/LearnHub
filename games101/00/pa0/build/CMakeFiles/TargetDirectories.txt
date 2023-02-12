@@ -1,0 +1,3 @@
+/home/mland/my/games101/00/pa0/build/CMakeFiles/Transformation.dir
+/home/mland/my/games101/00/pa0/build/CMakeFiles/edit_cache.dir
+/home/mland/my/games101/00/pa0/build/CMakeFiles/rebuild_cache.dir
