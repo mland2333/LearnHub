@@ -25,7 +25,16 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     float a = rotation_angle/180.0*std::acos(-1);
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
     Eigen::Matrix4f translate;
-    translate<< cos(a),-sin(a),0,0,sin(a),cos(a),0,0,0,0,1,0,0,0,0,1;
+    //绕z轴
+    translate<< cos(a),-sin(a),0,0,
+            sin(a),cos(a),0,0,
+            0,0,1,0,
+            0,0,0,1;
+    //绕y轴
+    /*translate << cos(a),0,sin(a),0,
+                0,1,0,0,
+                -sin(a),0,cos(a),0,
+                0,0,0,1;*/
     // TODO: Implement this function
     // Create the model matrix for rotating the triangle around the Z axis.
     // Then return it.
@@ -43,15 +52,21 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     float r = t*aspect_ratio;
     Eigen::Matrix4f translate;
     Eigen::Matrix4f ortho1,ortho2;
-    translate << zNear,0,0,0,0,zNear,0,0,0,0,zNear+zFar,-zNear*zFar,0,0,1,0;
-    ortho1<<1/r,0,0,0,
-            0,1/t,0,0,
-            0,0,2/(zNear-zFar),0,
-            0,0,0,1;
+    //透视投影分为两步
+    //1.挤压
+    translate << zNear,0,0,0,
+              0,zNear,0,0,
+              0,0,zNear+zFar,-zNear*zFar,
+              0,0,1,0;
+    //2.正交投影
+    ortho1<<-1/r,0,0,0,
+            0,-1/t,0,0,
+            0,0,2/(zFar-zNear),0,
+            0,0,0,1;//压缩到(-1,1)的立方体中
     ortho2<<1,0,0,0,
             0,1,0,0,
             0,0,1,-(zNear+zFar)/2,
-            0,0,0,1;
+            0,0,0,1;//将立方体的中心移动到原点
     projection = ortho1*ortho2*translate*projection;
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
@@ -59,18 +74,40 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
 
     return projection;
 }
+Eigen::Matrix4f get_rotation(Vector3f axis,float angle)//提高
+{
+    float a =angle/180.0*std::acos(-1);
+    Eigen::Matrix3f I,N,R;
+    I << 1,0,0,
+        0,1,0,
+        0,0,1;
+    N << 0,-axis.z(),axis.y(),
+        axis.z(),0,-axis.x(),
+        -axis.y(),axis.x(),0;
+    R = cos(a)*I+(1-cos(a))*(axis*axis.transpose())+sin(a)*N;
+    Eigen::Matrix4f RR;
+    RR << R(0,0),R(0,1),R(0,2),0,
+            R(1,0),R(1,1),R(1,2),0,
+            R(2,0),R(2,1),R(2,2),0,
+            0,0,0,1;
+    //std::cout<< a <<'\n'<<N<<'\n'<<R<<'\n'<<RR<<'\n';
+    return RR;
+}
 
 int main(int argc, const char** argv)
 {
     float angle = 0;
     bool command_line = false;
     std::string filename = "output.png";
-
+    Vector3f axis;
     if (argc >= 3) {
         command_line = true;
         angle = std::stof(argv[2]); // -r by default
-        if (argc == 4) {
+        if (argc >= 4) {
             filename = std::string(argv[3]);
+            axis.x() = std::stof(argv[4]);
+            axis.y() = std::stof(argv[5]); 
+            axis.z() = std::stof(argv[6]);
         }
         else
             return 0;
@@ -78,7 +115,7 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    Eigen::Vector3f eye_pos = {0, 0, 5};
+    Eigen::Vector3f eye_pos = {0, 0, 10};
 
     std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
 
@@ -93,7 +130,8 @@ int main(int argc, const char** argv)
     if (command_line) {
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
-        r.set_model(get_model_matrix(angle));
+        r.set_model(get_rotation(axis,angle));
+        //r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
