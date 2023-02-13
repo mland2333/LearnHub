@@ -10,10 +10,10 @@
  * Please fill in the following team struct 
  */
 team_t team = {
-    "bovik",              /* Team name */
+    "ovik",              /* Team name */
 
-    "Harry Q. Bovik",     /* First member full name */
-    "bovik@nowhere.edu",  /* First member email address */
+    "Ml Q. Bovik",     /* First member full name */
+    "mlvik@nowhere.edu",  /* First member email address */
 
     "",                   /* Second member full name (leave blank if none) */
     ""                    /* Second member email addr (leave blank if none) */
@@ -34,10 +34,34 @@ char naive_rotate_descr[] = "naive_rotate: Naive baseline implementation";
 void naive_rotate(int dim, pixel *src, pixel *dst) 
 {
     int i, j;
+    //int a0,a1,a2,a3,a4,a5,a6,a7;
+    //int k = dim>>3;
+    for (i = 0; i < dim; i+=8)
+	    for (j = 0; j < dim; j+=8)
+        {
+            for(int x = i;x<8+i;++x)
+            {
+                //int y=j;
+                dst[RIDX(dim-1-j, x, dim)] = src[RIDX(x, j, dim)];
+                dst[RIDX(dim-2-j, x, dim)] = src[RIDX(x, j+1, dim)]; 
+                dst[RIDX(dim-3-j, x, dim)] = src[RIDX(x, j+2, dim)]; 
+                dst[RIDX(dim-4-j, x, dim)] = src[RIDX(x, j+3, dim)]; 
+                dst[RIDX(dim-5-j, x, dim)] = src[RIDX(x, j+4, dim)]; 
+                dst[RIDX(dim-6-j, x, dim)] = src[RIDX(x, j+5, dim)]; 
+                dst[RIDX(dim-7-j, x, dim)] = src[RIDX(x, j+6, dim)]; 
+                dst[RIDX(dim-8-j, x, dim)] = src[RIDX(x, j+7, dim)];
+                /*dst[RIDX(dim-9-j, x, dim)] = src[RIDX(x, j+8, dim)];
+                dst[RIDX(dim-10-j, x, dim)] = src[RIDX(x, j+9, dim)]; 
+                dst[RIDX(dim-11-j, x, dim)] = src[RIDX(x, j+10, dim)]; 
+                dst[RIDX(dim-12-j, x, dim)] = src[RIDX(x, j+11, dim)]; 
+                dst[RIDX(dim-13-j, x, dim)] = src[RIDX(x, j+12, dim)]; 
+                dst[RIDX(dim-14-j, x, dim)] = src[RIDX(x, j+13, dim)]; 
+                dst[RIDX(dim-15-j, x, dim)] = src[RIDX(x, j+14, dim)]; 
+                dst[RIDX(dim-16-j, x, dim)] = src[RIDX(x, j+15, dim)];*/
+            } 
+            //dst[RIDX(dim-1-j, i, dim)] = src[RIDX(i, j, dim)];
 
-    for (i = 0; i < dim; i++)
-	for (j = 0; j < dim; j++)
-	    dst[RIDX(dim-1-j, i, dim)] = src[RIDX(i, j, dim)];
+        }
 }
 
 /* 
