@@ -24,15 +24,50 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
+    float a = rotation_angle/180.0*std::acos(-1);
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f translate;
+    //绕z轴
+    translate<< cos(a),-sin(a),0,0,
+            sin(a),cos(a),0,0,
+            0,0,1,0,
+            0,0,0,1;
+    //绕y轴
+    /*translate << cos(a),0,sin(a),0,
+                0,1,0,0,
+                -sin(a),0,cos(a),0,
+                0,0,0,1;*/
+    // TODO: Implement this function
+    // Create the model matrix for rotating the triangle around the Z axis.
+    // Then return it.
+    model = translate*model;
     return model;
 }
 
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Copy-paste your implementation from the previous assignment.
-    Eigen::Matrix4f projection;
-
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    float t = zNear*std::tan(eye_fov/2);
+    float r = t*aspect_ratio;
+    Eigen::Matrix4f translate;
+    Eigen::Matrix4f ortho1,ortho2;
+    //透视投影分为两步
+    //1.挤压
+    translate << zNear,0,0,0,
+              0,zNear,0,0,
+              0,0,zNear+zFar,-zNear*zFar,
+              0,0,1,0;
+    //2.正交投影
+    ortho1<<-1/r,0,0,0,
+            0,-1/t,0,0,
+            0,0,2/(zFar-zNear),0,
+            0,0,0,1;//压缩到(-1,1)的立方体中
+    ortho2<<1,0,0,0,
+            0,1,0,0,
+            0,0,1,-(zNear+zFar)/2,
+            0,0,0,1;//将立方体的中心移动到原点
+    projection = ortho1*ortho2*translate*projection;
     return projection;
 }
 
@@ -49,7 +84,7 @@ int main(int argc, const char** argv)
     }
 
     rst::rasterizer r(700, 700);
-
+    r.setMSAA(true);
     Eigen::Vector3f eye_pos = {0,0,5};
 
 

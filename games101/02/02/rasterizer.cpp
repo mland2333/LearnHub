@@ -40,8 +40,19 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
+    Vector3f v[3];
+    v[0]={_v[0].x(),_v[0].y(),1.0f};
+    v[1]={_v[1].x(),_v[1].y(),1.0f};
+    v[2]={_v[2].x(),_v[2].y(),1.0f};
+    Vector3f point = {x,y,1.0f};
+
+    auto v01 = v[0]-v[1],v0p = v[0]-point,
+        v12=v[1]-v[2],v1p=v[1]-point,
+        v20=v[2]-v[0],v2p=v[2]-point;
+    return v01.cross(v0p).z()>0&&v12.cross(v1p).z()>0&&v20.cross(v2p).z()>0
+        || v01.cross(v0p).z()<0&&v12.cross(v1p).z()<0&&v20.cross(v2p).z()<0;
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
 }
 
@@ -105,7 +116,82 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
+    int min_x = std::min(std::min(v[0].x(), v[1].x()), v[2].x());
+    int min_y = std::min(std::min(v[0].y(), v[1].y()), v[2].y());
+    int max_x = std::max(std::max(v[0].x(), v[1].x()), v[2].x());
+    int max_y = std::max(std::max(v[0].y(), v[1].y()), v[2].y());
     
+    if(MSAA)
+    {   
+          
+        Vector2f a[4] = { {0.25f,0.25f},{0.25f,0.75f},
+                    {0.75f,0.25f},{0.75f,0.25f}};
+        if(depth_buf_MSAA.size()==0)
+        {
+            depth_buf_MSAA.resize(height*width*4);
+            std::fill(depth_buf_MSAA.begin(), depth_buf_MSAA.end(), std::numeric_limits<float>::lowest());
+        }
+        
+        for (int x = min_x; x <= max_x; ++x) {
+            for (int y = min_y; y <= max_y; ++y) {
+                Vector3f w_color={0.f,0.f,0.f};
+                float w_depth=0.0f;
+                int index = get_index(x, y);
+                for(int i = 0;i<4;++i)
+                {
+                    if(insideTriangle(x+a[i].x(),y+a[i].y(),t.v))
+                    {
+                        auto[alpha,beta,gamma]=computeBarycentric2D(x+a[i].x(), y+a[i].y(), t.v);
+                        float w_reciprocal = 1.0 / (alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                        float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                        z_interpolated *= w_reciprocal;
+                        int MSAA_index = index*4+i;
+                        w_depth=std::max(z_interpolated,w_depth);
+                        if(z_interpolated>depth_buf_MSAA[MSAA_index])
+                        {
+                             depth_buf_MSAA[MSAA_index] = z_interpolated;
+                             w_color+=t.getColor();
+                        }
+                        else
+                        {
+                            w_color+=frame_buf[index];
+                            
+                        }
+                    }
+                    else
+                    {
+                        w_color+=frame_buf[index];
+                    }
+                }
+                
+                       if(w_depth>depth_buf[index])
+                       {
+                        depth_buf[index] = w_depth;
+                        set_pixel({(float)x,(float)y,0.f},w_color*0.25);
+                   }
+            
+         }
+    }
+    }
+    else
+    {
+    for (int x = min_x; x <= max_x; ++x) {
+        for (int y = min_y; y <= max_y; ++y) {
+            if(insideTriangle(x+0.5f, y+0.5f, t.v)){
+                auto[alpha,beta,gamma]=computeBarycentric2D(x, y, t.v);
+                float w_reciprocal = 1.0 / (alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                z_interpolated *= w_reciprocal;
+                int index = get_index(x, y);
+                if(z_interpolated>depth_buf[index])
+                {
+                    depth_buf[index] = z_interpolated;
+                    set_pixel({(float)x,(float)y,1.0f}, t.getColor());
+                }
+            }
+        }
+    }
+    }
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
 
@@ -141,14 +227,15 @@ void rst::rasterizer::clear(rst::Buffers buff)
     }
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
-        std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
+        std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::lowest());
     }
 }
 
-rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
+rst::rasterizer::rasterizer(int w, int h) : width(w), height(h),MSAA(false)
 {
     frame_buf.resize(w * h);
     depth_buf.resize(w * h);
+    //depth_buf_MSAA.resize(w*h*4);
 }
 
 int rst::rasterizer::get_index(int x, int y)
