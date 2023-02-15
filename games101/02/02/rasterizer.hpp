@@ -53,7 +53,11 @@ namespace rst
     {
         int col_id = 0;
     };
-
+    struct pixel_buf
+    {
+        int id;
+        Eigen::Vector3f color;
+    };
     class rasterizer
     {
     public:
@@ -74,10 +78,11 @@ namespace rst
 
         std::vector<Eigen::Vector3f>& frame_buffer() { return frame_buf; }
         void setMSAA(bool open) { MSAA = open;}
+        //void set_color_buf(Triangle&t)
         //bool getMSAA(){ return MSAA;}
     private:
         void draw_line(Eigen::Vector3f begin, Eigen::Vector3f end);
-
+        void rasterize_triangles(const std::vector<Triangle> tt);
         void rasterize_triangle(const Triangle& t);
 
         // VERTEX SHADER -> MVP -> Clipping -> /.W -> VIEWPORT -> DRAWLINE/DRAWTRI -> FRAGSHADER
@@ -94,6 +99,7 @@ namespace rst
         std::vector<Eigen::Vector3f> frame_buf;
         std::vector<float> depth_buf_MSAA;
         std::vector<float> depth_buf;
+        std::vector<std::map<float,pixel_buf> > color_buf;
         int get_index(int x, int y);
         bool MSAA;
 

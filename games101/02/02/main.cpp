@@ -84,24 +84,28 @@ int main(int argc, const char** argv)
     }
 
     rst::rasterizer r(700, 700);
-    r.setMSAA(true);
+    //r.setMSAA(true);
     Eigen::Vector3f eye_pos = {0,0,5};
 
 
     std::vector<Eigen::Vector3f> pos
             {
-                    {2, 0, -2},
+                    {1, 0, -2},
                     {0, 2, -2},
                     {-2, 0, -2},
                     {3.5, -1, -5},
                     {2.5, 1.5, -5},
-                    {-1, 0.5, -5}
+                    {-1, 0.5, -5},
+                    {3,-1,-3},
+                    {-1,2,-3},
+                    {2,3,-3}
             };
 
     std::vector<Eigen::Vector3i> ind
             {
                     {0, 1, 2},
-                    {3, 4, 5}
+                    {3, 4, 5},
+                    {6,7,8}
             };
 
     std::vector<Eigen::Vector3f> cols
@@ -111,7 +115,10 @@ int main(int argc, const char** argv)
                     {217.0, 238.0, 185.0},
                     {185.0, 217.0, 238.0},
                     {185.0, 217.0, 238.0},
-                    {185.0, 217.0, 238.0}
+                    {185.0, 217.0, 238.0},
+                    {132.0,221.0,244.0},
+                    {132.0,221.0,244.0},
+                    {132.0,221.0,244.0} 
             };
 
     auto pos_id = r.load_positions(pos);
