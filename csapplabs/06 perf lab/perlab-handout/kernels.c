@@ -107,7 +107,7 @@ typedef struct {
     int num;
 } pixel_sum;
 
-/* Compute min and max of two integers, respectively */
+
 static int min(int a, int b) { return (a < b ? a : b); }
 static int max(int a, int b) { return (a > b ? a : b); }
 
