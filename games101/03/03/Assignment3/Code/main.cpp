@@ -64,7 +64,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
     //2.正交投影
     ortho1<<-1/r,0,0,0,
             0,-1/t,0,0,
-            0,0,2/(zFar-zNear),0,
+            0,0,-2/(zFar-zNear),0,
             0,0,0,1;//压缩到(-1,1)的立方体中
     ortho2<<1,0,0,0,
             0,1,0,0,
@@ -120,7 +120,7 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
 
     std::vector<light> lights = {l1, l2};
     Eigen::Vector3f amb_light_intensity{10, 10, 10};
-    Eigen::Vector3f eye_pos{0, 0, 10};
+    Eigen::Vector3f eye_pos{0, 0,10};
 
     float p = 150;
 
