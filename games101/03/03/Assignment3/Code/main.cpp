@@ -1,5 +1,5 @@
 #include <iostream>
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 
 #include "global.hpp"
 #include "rasterizer.hpp"
@@ -50,6 +50,28 @@ Eigen::Matrix4f get_model_matrix(float angle)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Use the same projection matrix from the previous assignments
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    float t = zNear*std::tan(eye_fov/2);
+    float r = t*aspect_ratio;
+    Eigen::Matrix4f translate;
+    Eigen::Matrix4f ortho1,ortho2;
+    //透视投影分为两步
+    //1.挤压
+    translate << zNear,0,0,0,
+              0,zNear,0,0,
+              0,0,zNear+zFar,-zNear*zFar,
+              0,0,1,0;
+    //2.正交投影
+    ortho1<<-1/r,0,0,0,
+            0,-1/t,0,0,
+            0,0,2/(zFar-zNear),0,
+            0,0,0,1;//压缩到(-1,1)的立方体中
+    ortho2<<1,0,0,0,
+            0,1,0,0,
+            0,0,1,-(zNear+zFar)/2,
+            0,0,0,1;//将立方体的中心移动到原点
+    projection = ortho1*ortho2*translate*projection;
+    return projection;
 
 }
 
@@ -247,10 +269,10 @@ int main(int argc, const char** argv)
 
     std::string filename = "output.png";
     objl::Loader Loader;
-    std::string obj_path = "../models/spot/";
+    std::string obj_path = "/home/mland/my/games101/03/03/Assignment3/Code/models/spot/";
 
     // Load .obj File
-    bool loadout = Loader.LoadFile("../models/spot/spot_triangulated_good.obj");
+    bool loadout = Loader.LoadFile("/home/mland/my/games101/03/03/Assignment3/Code/models/spot/spot_triangulated_good.obj");
     for(auto mesh:Loader.LoadedMeshes)
     {
         for(int i=0;i<mesh.Vertices.size();i+=3)
