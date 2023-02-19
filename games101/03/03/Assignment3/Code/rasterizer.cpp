@@ -281,7 +281,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
                     auto[alpha,beta,gamma]=computeBarycentric2D(x+0.5, y+0.5, t.v);
                     float Z = 1.0 / (alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                     float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                    zp *= Z;
+                    zp *= -Z;
                     int index = get_index(x, y);
                     if(zp<depth_buf[index])
                     {
