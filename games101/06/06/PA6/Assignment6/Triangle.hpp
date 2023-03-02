@@ -230,7 +230,14 @@ inline Intersection Triangle::getIntersection(Ray ray)
     if (v < 0 || u + v > 1)
         return inter;
     t_tmp = dotProduct(e2, qvec) * det_inv;
-
+    if(t_tmp < 0) 
+        return inter;
+    inter.coords = ray.origin+ray.direction*t_tmp;
+    inter.happened = true;
+    inter.distance = t_tmp;
+    inter.m = this->m;
+    inter.normal = this->normal;
+    inter.obj = this;
     // TODO find ray triangle intersection
 
 
