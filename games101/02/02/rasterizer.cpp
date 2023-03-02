@@ -118,7 +118,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
 }
 void rst::rasterizer::rasterize_triangles(const std::vector<Triangle> tt)
 {
-    for(int i = 0;i<tt.size();++i)
+    for(int i = 0;i<tt.size();++i)//初始化color_buf,
     {
         auto v = tt[i].toVector4();
         int min_x = std::min(std::min(v[0].x(), v[1].x()), v[2].x());
@@ -143,9 +143,8 @@ void rst::rasterizer::rasterize_triangles(const std::vector<Triangle> tt)
             }
         }
     }
-    for(int i = 0;i<tt.size();++i)
+    for(int i = 0;i<tt.size();++i)//根据color_buf里的值计算
     {
-        std::cout<<"here\n";
         auto v = tt[i].toVector4();
         int min_x = std::min(std::min(v[0].x(), v[1].x()), v[2].x());
         int min_y = std::min(std::min(v[0].y(), v[1].y()), v[2].y());
@@ -163,7 +162,6 @@ void rst::rasterizer::rasterize_triangles(const std::vector<Triangle> tt)
         {
             for (int y = min_y; y <= max_y; ++y) 
             {
-                 std::cout<<"here\n";
                 Vector3f w_color={0.f,0.f,0.f};
                 float w_depth=0.0f;
                 int index = get_index(x, y);
@@ -178,38 +176,33 @@ void rst::rasterizer::rasterize_triangles(const std::vector<Triangle> tt)
                         z_interpolated *= w_reciprocal;
                         int MSAA_index = index*4+j;
                         w_depth=std::max(z_interpolated,w_depth);
-                        if(z_interpolated>depth_buf_MSAA[MSAA_index])
+                        if(z_interpolated>depth_buf_MSAA[MSAA_index])//当前三角形深度值大于depth_buf_MSAA[index]中的值，则更新depth_buf_MSAA,并选取当前三角形颜色
                         {
                              depth_buf_MSAA[MSAA_index] = z_interpolated;
                              w_color+=tt[i].getColor();
-                        }
+                        }//若小于，则选择buf中下一层的颜色
                         else
                         {
                             w_color+=(--(--color_buf[index].end()))->second.color;
                         }
                     }
-                    else
+                    else//若当前点不在三角形里，则判断当前color_buf中最高层是否为当前层，若是，则选择下一层的颜色，若不是，则选择最高层的颜色
                     {
                         if((--color_buf[index].end())->second.id==(i+1))
                             w_color+=(--(--color_buf[index].end()))->second.color;
                         else
                             w_color+=(--color_buf[index].end())->second.color;
                     }
-                    std::cout<<"here\n";
                 }
                 
                     if(w_depth>depth_buf[index])
                     {
-                        std::cout<<"here\n";
                         depth_buf[index] = w_depth;
                         set_pixel({(float)x,(float)y,0.f},w_color*0.25);
                     }
-                    //else if(w_depth<depth_buf[index]&&flag==1)
-                       // set_pixel({(float)x,(float)y,0.f},w_color*0.25);
             }
         }
     }
-        //rasterize_triangle(t);
 }
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {

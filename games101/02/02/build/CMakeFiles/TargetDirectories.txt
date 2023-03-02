@@ -1,3 +1,0 @@
-/home/mland/my/games101/02/02/build/CMakeFiles/Rasterizer.dir
-/home/mland/my/games101/02/02/build/CMakeFiles/edit_cache.dir
-/home/mland/my/games101/02/02/build/CMakeFiles/rebuild_cache.dir
