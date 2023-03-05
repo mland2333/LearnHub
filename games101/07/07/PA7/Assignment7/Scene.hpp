@@ -11,7 +11,8 @@
 #include "AreaLight.hpp"
 #include "BVH.hpp"
 #include "Ray.hpp"
-
+#include <tbb/blocked_range2d.h>
+#include <tbb/parallel_for.h>
 
 class Scene
 {
