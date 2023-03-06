@@ -13,7 +13,7 @@
 #include "Ray.hpp"
 #include <tbb/blocked_range2d.h>
 #include <tbb/parallel_for.h>
-
+#include <tbb/blocked_range.h>
 class Scene
 {
 public:

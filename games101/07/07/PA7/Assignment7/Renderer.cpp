@@ -21,32 +21,33 @@ void Renderer::Render(const Scene& scene)
     float scale = tan(deg2rad(scene.fov * 0.5));
     float imageAspectRatio = scene.width / (float)scene.height;
     Vector3f eye_pos(278, 273, -800);
-    int m = 0;
-
     // change the spp value to change sample ammount
-    int spp = 1;
+    int spp = 64;
     std::cout << "SPP: " << spp << "\n";
-    /*tbb::parallel_for(tbb::blocked_range2d<unsigned int>(0,scene.height,0,scene.width),
-        [&](tbb::blocked_range2d<unsigned int> r) {
-            for(unsigned int j = r.cols().begin();j<r.cols().end();++j){
-                for(unsigned int i = r.rows().begin();i<r.rows().end();++i){
+    int m = 0;
+    //std::ostream &os(std::cout);
+    //std::atomic<int> m_atomic(0);
+    tbb::parallel_for(tbb::blocked_range2d<uint32_t>(0,scene.height,0,scene.width),
+        [&](tbb::blocked_range2d<uint32_t> r) {
+            for(uint32_t j = r.rows().begin();j<r.rows().end();j++){
+                for(uint32_t i = r.cols().begin();i<r.cols().end();i++){
                     float x = (2 * (i + 0.5) / (float)scene.width - 1) *
                       imageAspectRatio * scale;
                     float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
 
                     Vector3f dir = normalize(Vector3f(-x, y, 1));
                     for (int k = 0; k < spp; k++){
-                        framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
+                        framebuffer[j*scene.width+i] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
                     }
-                    m++;
-                //std::cout<<m<<'\n';
                 }
-                //UpdateProgress(i / (float)scene.height);
+                /*++m_atomic;
+                os << (int)m_atomic /scene.heigth <<"%\r";
+                os.flush();*/
+                //UpdateProgress(j / (float)scene.height);
             }
-        });*/
+        });
 
-
-    for (uint32_t j = 0; j < scene.height; ++j) {
+    /*for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
             // generate primary ray direction
             float x = (2 * (i + 0.5) / (float)scene.width - 1) *
@@ -54,13 +55,14 @@ void Renderer::Render(const Scene& scene)
             float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
 
             Vector3f dir = normalize(Vector3f(-x, y, 1));
+            
             for (int k = 0; k < spp; k++){
                 framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
             }
             m++;
         }
         UpdateProgress(j / (float)scene.height);
-    }
+    }*/
     UpdateProgress(1.f);
 
     // save framebuffer to file
