@@ -25,8 +25,9 @@ void Renderer::Render(const Scene& scene)
     int spp = 64;
     std::cout << "SPP: " << spp << "\n";
     int m = 0;
-    //std::ostream &os(std::cout);
-    //std::atomic<int> m_atomic(0);
+    int wh = scene.width*scene.height/100;
+    std::ostream &os(std::cout);
+    std::atomic<int> m_atomic(0);
     tbb::parallel_for(tbb::blocked_range2d<uint32_t>(0,scene.height,0,scene.width),
         [&](tbb::blocked_range2d<uint32_t> r) {
             for(uint32_t j = r.rows().begin();j<r.rows().end();j++){
@@ -39,11 +40,12 @@ void Renderer::Render(const Scene& scene)
                     for (int k = 0; k < spp; k++){
                         framebuffer[j*scene.width+i] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
                     }
+
+                    std::string msg = std::to_string((int)++m_atomic/wh) + "%\r";
+                    os << msg;
+                    os.flush();
                 }
-                /*++m_atomic;
-                os << (int)m_atomic /scene.heigth <<"%\r";
-                os.flush();*/
-                //UpdateProgress(j / (float)scene.height);
+                
             }
         });
 
@@ -63,7 +65,7 @@ void Renderer::Render(const Scene& scene)
         }
         UpdateProgress(j / (float)scene.height);
     }*/
-    UpdateProgress(1.f);
+    //UpdateProgress(1.f);
 
     // save framebuffer to file
     FILE* fp = fopen("binary.ppm", "wb");

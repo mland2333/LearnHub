@@ -83,8 +83,8 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N]) {
                 for(y = j;y<j+4;y++)
                 {
                     x = i;
-                    a1 = B[y][x+4];
-                    a2= B[y][x+5];
+                    a1=B[y][x+4];
+                    a2=B[y][x+5];
                     a3=B[y][x+6];
                     a4=B[y][x+7];
 

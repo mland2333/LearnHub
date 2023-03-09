@@ -80,13 +80,13 @@ void rotate(int dim, pixel *src, pixel *dst)
  *     add_rotate_function() for each test function. When you run the
  *     driver program, it will test and report the performance of each
  *     registered test function.  
- *********************************************************************/
+ *******************************   **************************************/
 
 void register_rotate_functions() 
-{
+{                               
     add_rotate_function(&naive_rotate, naive_rotate_descr);   
     add_rotate_function(&rotate, rotate_descr);   
-    /* ... Register additional test functions here */
+    /* ... Register ad ditional test functions here */
 }
 
 
@@ -95,7 +95,7 @@ void register_rotate_functions()
  **************/
 
 /***************************************************************
- * Various typedefs and helper functions for the smooth function
+ * Various typedefs a nd helper functions for the smooth function
  * You may modify these any way you like.
  **************************************************************/
 
@@ -122,7 +122,7 @@ static void initialize_pixel_sum(pixel_sum *sum)
 }
 
 /* 
- * accumulate_sum - Accumulates field values of p in corresponding 
+ * accumulate_sum -  Accumulates field values of p in corresponding 
  * fields of sum 
  */
 static void accumulate_sum(pixel_sum *sum, pixel p) 
@@ -153,13 +153,21 @@ static pixel avg(int dim, int i, int j, pixel *src)
     int ii, jj;
     pixel_sum sum;
     pixel current_pixel;
-
-    initialize_pixel_sum(&sum);
+     sum.red = sum.green = sum.blue = 0;
+    sum.num = 0;
+    //initialize_pixel_sum(&sum);
     for(ii = max(i-1, 0); ii <= min(i+1, dim-1); ii++) 
 	for(jj = max(j-1, 0); jj <= min(j+1, dim-1); jj++) 
-	    accumulate_sum(&sum, src[RIDX(ii, jj, dim)]);
-
-    assign_sum_to_pixel(&current_pixel, sum);
+	{
+        sum.red += (int) src[RIDX(ii,jj,dim)].red;
+        sum.green += (int) src[RIDX(ii,jj,dim)].green;
+        sum.blue += (int) src[RIDX(ii,jj,dim)].blue;  
+        sum.num++;
+    }
+    current_pixel.red = (unsigned short) (sum.red/sum.num);
+    current_pixel.green = (unsigned short) (sum.green/sum.num);
+    current_pixel.blue = (unsigned short) (sum.blue/sum.num);
+    //assign_sum_to_pixel(&current_pixel, sum);
     return current_pixel;
 }
 
@@ -174,12 +182,24 @@ char naive_smooth_descr[] = "naive_smooth: Naive baseline implementation";
 void naive_smooth(int dim, pixel *src, pixel *dst) 
 {
     int i, j;
-
-    for (i = 0; i < dim; i++)
-	for (j = 0; j < dim; j++)
-	    dst[RIDX(i, j, dim)] = avg(dim, i, j, src);
+    int add=1;
+    for (i = 0; i < dim; i+=add)
+	for (j = 0; j < dim; j+=add)
+    {
+        /*for(int x = i;x<i+add;++x)
+        {
+	        dst[RIDX(x, j, dim)] = avg(dim, x, j, src);
+            dst[RIDX(x, j+1, dim)] = avg(dim, x, j+1, src);
+            dst[RIDX(x, j+2, dim)] = avg(dim, x, j+2, src);
+            dst[RIDX(x, j+3, dim)] = avg(dim, x, j+3, src);
+            dst[RIDX(x, j+4, dim)] = avg(dim, x, j+4, src);
+            dst[RIDX(x, j+5, dim)] = avg(dim, x, j+5, src);
+            dst[RIDX(x, j+6, dim)] = avg(dim, x, j+6, src);
+            dst[RIDX(x, j+7, dim)] = avg(dim, x, j+7, src);
+        }*/
+        dst[RIDX(i, j, dim)] = avg(dim, i, j, src);
+    }
 }
-
 /*
  * smooth - Your current working version of smooth. 
  * IMPORTANT: This is the version you will be graded on
