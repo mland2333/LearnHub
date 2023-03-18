@@ -44,11 +44,88 @@ team_t team = {
 
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
 
+#define WSIZE               4
+#define DSIZE               8
+
+#define MAX(x, y)           ((x) > (y)? (x) : (y))
+
+#define PACK(size, alloc)   ((size) | (alloc))
+
+#define GET(p)              (* (unsigned int *)(p))
+#define PUT(p, val)         (* (unsigned int *) (p) = (val))
+
+#define GET_SIZE(p)         (GET(p) & ~0x7)
+#define GET_ALLOC(p)        (GET(p) & 0x1)
+
+#define HDRP(bp)            ((char*)bp - WSIZE)
+#define FTRP(bp)            ((char*)bp + GET_SIZE(HDRP(bp)) + DSIZE)
+
+#define NEXT_BLKP(bp)       ((char *) (bp) + GET_SIZE(((char *) (bp)-WSIZE))) 
+#define PREV_BLKP(bp)       ((char *) (bp)-GET_SIZE(((char *) (bp)-DSIZE)))
+
+#define CHUNKSIZE (1<<12)
+void *head_listp = NULL;
 /* 
  * mm_init - initialize the malloc package.
  */
+void* coalesec(void* bp)
+{
+    size_t prev_alloc = GET_ALLOC(PREV_BLKP(bp));
+    size_t next_alloc = GET_ALLOC(NEXT_BLKP(bp));
+
+    size_t size = GET_SIZE(HDRP(bp));
+
+    if(prev_alloc && next_alloc)
+        return bp;
+    else if(prev_alloc && !next_alloc)
+    {
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        PUT(HDRP(bp), PACK(size, 0));
+        PUT(FTRP(bp), PACK(size, 0));
+    }
+    else if(!prev_alloc && next_alloc)
+    {
+        size += GET_SIZE(HDRP(PREV_BLKP(bp)));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        PUT(FTRP(bp), PACK(size, 0));
+        bp = PREV_BLKP(bp);
+    }
+    else
+    {
+        size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        PUT(FTRP(bp), PACK(size, 0));
+        bp = PREV_BLKP(bp);
+    }
+    return bp;
+}
+
+void *extend_heap(size_t words)
+{
+    char *bp;
+    size_t size;
+    size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
+    if((long)(bp = mem_sbrk(size)) == -1)
+        return NULL;
+    PUT(HDRP(bp), PACK(size, 0));/* Free block header */
+    PUT(FTRP(bp), PACK(size, 0));/* Free block footer */
+    PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
+    return coalesec(bp);
+}
+
 int mm_init(void)
 {
+    if((head_listp = mem_sbrk(4*WSIZE)) == (void*)-1)
+        return -1;
+    PUT(head_listp, 0);
+    PUT(head_listp + WSIZE, PACK(DSIZE, 1));
+    PUT(head_listp + 2*WSIZE, PACK(DSIZE, 1));
+    PUT(head_listp+2*WSIZE, PACK(0, 1));
+
+    head_listp += DSIZE;
+
+    if((head_listp = extend_heap(CHUNKSIZE/WSIZE)) == NULL)
+       return -1;
     return 0;
 }
 
@@ -58,14 +135,33 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    int newsize = ALIGN(size + SIZE_T_SIZE);
+    int newsize;
+    if(size == 0) return NULL;
+    if(size < DSIZE)
+        newsize = 2*DSIZE;
+    else 
+        newsize = (size + DSIZE + DSIZE - 1) & ~0X07;
+    char *bp;
+    if((bp = find_fit(newsize)) != NULL)
+    {
+        place(bp, newsize);
+        return bp;
+    }
+
+    newsize = newsize>CHUNKSIZE?CHUNKSIZE:newsize;
+    if((bp = extend_heap(newsize)) == NULL)
+        return NULL;
+    place(bp, newsize);
+    return bp;
+
+    /*int newsize = ALIGN(size + SIZE_T_SIZE);
     void *p = mem_sbrk(newsize);
     if (p == (void *)-1)
 	return NULL;
     else {
         *(size_t *)p = size;
         return (void *)((char *)p + SIZE_T_SIZE);
-    }
+    }*/
 }
 
 /*
@@ -73,6 +169,12 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
+    if(ptr == NULL)
+        return;
+    size_t size = GET_SIZE(HDRP(ptr));
+    PUT(HDRP(ptr), PACK(size, 0));
+    PUT(FTRP(ptr), PACK(size, 0));
+    coalesec(ptr);
 }
 
 /*
