@@ -57,24 +57,29 @@ team_t team = {
 #define GET_SIZE(p)         (GET(p) & ~0x7)
 #define GET_ALLOC(p)        (GET(p) & 0x1)
 
-#define HDRP(bp)            ((char*)bp - WSIZE)
-#define FTRP(bp)            ((char*)bp + GET_SIZE(HDRP(bp)) + DSIZE)
+#define HDRP(bp)            ((char*)(bp) - WSIZE)
+#define FTRP(bp)            ((char*)(bp) + GET_SIZE(HDRP(bp)) - DSIZE)
 
-#define NEXT_BLKP(bp)       ((char *) (bp) + GET_SIZE(((char *) (bp)-WSIZE))) 
-#define PREV_BLKP(bp)       ((char *) (bp)-GET_SIZE(((char *) (bp)-DSIZE)))
+#define NEXT_BLKP(bp)       ((char *) (bp) + GET_SIZE(HDRP(bp))) 
+#define PREV_BLKP(bp)       ((char *) (bp) - GET_SIZE(((char *) (bp)-DSIZE)))
 
 #define CHUNKSIZE (1<<12)
+//static int a = 0;
+//static int b = 1;
+//static int c = 1;
 void *head_listp = NULL;
 /* 
  * mm_init - initialize the malloc package.
  */
 void* coalesec(void* bp)
 {
-    size_t prev_alloc = GET_ALLOC(PREV_BLKP(bp));
-    size_t next_alloc = GET_ALLOC(NEXT_BLKP(bp));
-
+    //printf("beforecoale\n");
+    size_t prev_alloc = GET_ALLOC(HDRP(PREV_BLKP(bp)));
+    //printf("beforecoale\n");
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
+  
     size_t size = GET_SIZE(HDRP(bp));
-
+    //printf("beforecoale\n");
     if(prev_alloc && next_alloc)
         return bp;
     else if(prev_alloc && !next_alloc)
@@ -94,14 +99,16 @@ void* coalesec(void* bp)
     {
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
-        PUT(FTRP(bp), PACK(size, 0));
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     }
+    //printf("aftercoale\n");
     return bp;
 }
 
 void *extend_heap(size_t words)
 {
+   // printf("enter extend ");
     char *bp;
     size_t size;
     size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
@@ -110,7 +117,49 @@ void *extend_heap(size_t words)
     PUT(HDRP(bp), PACK(size, 0));/* Free block header */
     PUT(FTRP(bp), PACK(size, 0));/* Free block footer */
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
+    //printf("extend:%d,size:%d\n", a++, size);
     return coalesec(bp);
+}
+
+static void *find_fit(size_t size)
+{
+    //printf("enter find"); 
+    void* head = head_listp ;
+     while(GET_SIZE(HDRP(head))!=0)
+     {
+         //printf(" find size : %d\n", GET_SIZE(HDRP(head))); 
+         if((!GET_ALLOC(HDRP(head))) && (GET_SIZE(HDRP(head)) >=size))
+              return head;
+          head += GET_SIZE(HDRP(head));
+     }
+     //printf(" No find\n");
+     return NULL;
+}
+
+static void place(void* bp, size_t size)
+{
+    size_t remain_size, bp_size = GET_SIZE(HDRP(bp));
+    
+    if((remain_size = bp_size - size) >= 2*DSIZE)
+    {
+         
+         PUT(HDRP(bp), PACK(size, 1));
+         PUT(FTRP(bp), PACK(size, 1));
+         bp += size;
+         
+         PUT(HDRP(bp), PACK(remain_size, 0));
+         
+         PUT(FTRP(bp), PACK(remain_size, 0));
+         //printf("diveplace:%d\n", c);
+    }
+    else
+    {
+        //printf("normalplace\n");
+         PUT(HDRP(bp), PACK(bp_size, 1));
+         PUT(FTRP(bp), PACK(bp_size, 1));
+    }
+    //printf("afterplace:%d\n", c++);
+    return;
 }
 
 int mm_init(void)
@@ -120,12 +169,14 @@ int mm_init(void)
     PUT(head_listp, 0);
     PUT(head_listp + WSIZE, PACK(DSIZE, 1));
     PUT(head_listp + 2*WSIZE, PACK(DSIZE, 1));
-    PUT(head_listp+2*WSIZE, PACK(0, 1));
+    PUT(head_listp+3*WSIZE, PACK(0, 1));
 
     head_listp += DSIZE;
 
     if((head_listp = extend_heap(CHUNKSIZE/WSIZE)) == NULL)
        return -1;
+    //printf("heap address:%p\n", mem_heap_lo());
+    //printf("mem address:%p\n", head_listp);
     return 0;
 }
 
@@ -142,18 +193,22 @@ void *mm_malloc(size_t size)
     else 
         newsize = (size + DSIZE + DSIZE - 1) & ~0X07;
     char *bp;
+    //printf("enter malloc ");
     if((bp = find_fit(newsize)) != NULL)
     {
         place(bp, newsize);
+        //printf("find malloc:%d,size:%d, address:%p\n",b++,newsize,bp);
         return bp;
     }
 
-    newsize = newsize>CHUNKSIZE?CHUNKSIZE:newsize;
-    if((bp = extend_heap(newsize)) == NULL)
+    
+    size_t extendsize = newsize > CHUNKSIZE?newsize:CHUNKSIZE;
+    if((bp = extend_heap(extendsize/WSIZE)) == NULL)
         return NULL;
     place(bp, newsize);
-    return bp;
 
+     //printf("malloc:%d,size:%d, address:%p\n",b++,newsize,bp);
+    return bp;
     /*int newsize = ALIGN(size + SIZE_T_SIZE);
     void *p = mem_sbrk(newsize);
     if (p == (void *)-1)
@@ -174,7 +229,9 @@ void mm_free(void *ptr)
     size_t size = GET_SIZE(HDRP(ptr));
     PUT(HDRP(ptr), PACK(size, 0));
     PUT(FTRP(ptr), PACK(size, 0));
+    
     coalesec(ptr);
+     //printf("free, size:%d, address:%p\n", size, ptr);
 }
 
 /*
@@ -182,7 +239,7 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
-    void *oldptr = ptr;
+    /*void *oldptr = ptr;
     void *newptr;
     size_t copySize;
     
@@ -194,7 +251,53 @@ void *mm_realloc(void *ptr, size_t size)
       copySize = size;
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
-    return newptr;
+    return newptr;*/
+
+    if(ptr == NULL)
+        return mm_malloc(size);
+    if(size == 0)
+    {
+        mm_free(ptr);
+        return NULL;
+    }
+
+    void* old_ptr = ptr;
+    size_t ptr_size = GET_SIZE(HDRP(ptr));
+    //printf(" old_ptr=%p, ptr_size=%d,size=%d\n",ptr, ptr_size,size);
+    size_t copy_size = size > ptr_size-2*WSIZE ? ptr_size-2*WSIZE:size;
+    
+    //size += 2 * WSIZE;
+    //size_t copy_size = (size > ptr_size?ptr_size:size) - 2*WSIZE;
+
+    PUT(HDRP(ptr), PACK(ptr_size, 0));
+    PUT(FTRP(ptr), PACK(ptr_size, 0));
+    ptr = coalesec(ptr);
+    size_t new_ptr_size = GET_SIZE(HDRP(ptr));
+    //printf("  new_ptr=%p, ptr_size=%d,size = %d\n",ptr,new_ptr_size,size);
+    if(new_ptr_size >=((size + DSIZE + DSIZE - 1) & ~0X07))
+    {
+        if(size < DSIZE)
+            size = 2*DSIZE;
+        else 
+            size = (size + DSIZE + DSIZE - 1) & ~0X07;
+        memcpy(ptr, old_ptr, copy_size);
+        
+        place(ptr, size);
+        //printf("satisfy, ptr=%p, size=%d, copy_size=%d,ptr_size=%d\n",ptr, size,copy_size,GET_SIZE(HDRP(ptr)));
+        return ptr;
+    }
+    else
+    {
+        if((ptr = mm_malloc(size)) != NULL)
+        {
+            memcpy(ptr, old_ptr, copy_size);
+            //printf("not satisfy, ptr=%p, size=%d,copy_size=%d\n",ptr,GET_SIZE(HDRP(ptr)),copy_size);
+            return ptr;
+        }
+        else
+            return NULL;
+    }
+    
 }
 
 
