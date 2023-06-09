@@ -8,7 +8,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-
+extern char **environ;
 
 void unix_error(char*msg);
 void print_env(int argc, char*argv[], char*envp[]);
+

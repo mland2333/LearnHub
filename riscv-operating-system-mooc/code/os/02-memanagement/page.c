@@ -67,6 +67,7 @@ static inline int _is_last(struct Page *page)
 	}
 }
 
+
 /*
  * align the address to the border of page(4K)
  */

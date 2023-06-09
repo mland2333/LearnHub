@@ -241,7 +241,7 @@ word d_valB = [
 ## Select input A to ALU
 word aluA = [
 	E_icode in { IRRMOVQ, IOPQ } : E_valA;
-	E_icode in { IIRMOVQ, IRMMOVQ, IMRMOVQ,IIADDQ } : E_valC;
+	E_icode in { IIRMOVQ, IRMMOVQ, IMRMOVQ,IIADDQ,IJXX } : E_valC;
 	E_icode in { ICALL, IPUSHQ } : -8;
 	E_icode in { IRET, IPOPQ } : 8;
 	# Other instructions don't need ALU
@@ -251,7 +251,7 @@ word aluA = [
 word aluB = [
 	E_icode in { IRMMOVQ, IMRMOVQ, IOPQ, ICALL, 
 		     IPUSHQ, IRET, IPOPQ ,IIADDQ} : E_valB;
-	E_icode in { IRRMOVQ, IIRMOVQ } : 0;
+	E_icode in { IRRMOVQ, IIRMOVQ,IJXX } : 0;
 	# Other instructions don't need ALU
 ];
 

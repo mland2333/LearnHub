@@ -117,4 +117,16 @@ void uart_puts(char *s)
 		uart_putc(*s++);
 	}
 }
-
+void uart_input()
+{
+    while(1)
+    {
+        while((uart_read_reg(LSR) & LSR_RX_READY)==0);
+        char ch = uart_read_reg(RHR);
+        if(ch == '\r')
+            ch = '\n';
+        while ((uart_read_reg(LSR) & LSR_TX_IDLE) == 0);
+        uart_write_reg(THR, ch);
+        //uart_write_reg(THR, '\n');
+    }
+}

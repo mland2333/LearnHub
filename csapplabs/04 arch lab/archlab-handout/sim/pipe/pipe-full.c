@@ -127,10 +127,11 @@ long long gen_aluA()
     return (((id_ex_curr->icode) == (I_RRMOVQ) || (id_ex_curr->icode) == 
         (I_ALU)) ? (id_ex_curr->vala) : ((id_ex_curr->icode) == (I_IRMOVQ)
          || (id_ex_curr->icode) == (I_RMMOVQ) || (id_ex_curr->icode) == 
-        (I_MRMOVQ) || (id_ex_curr->icode) == (I_IADDQ)) ? 
-      (id_ex_curr->valc) : ((id_ex_curr->icode) == (I_CALL) || 
-        (id_ex_curr->icode) == (I_PUSHQ)) ? -8 : ((id_ex_curr->icode) == 
-        (I_RET) || (id_ex_curr->icode) == (I_POPQ)) ? 8 : 0);
+        (I_MRMOVQ) || (id_ex_curr->icode) == (I_IADDQ) || 
+        (id_ex_curr->icode) == (I_JMP)) ? (id_ex_curr->valc) : (
+        (id_ex_curr->icode) == (I_CALL) || (id_ex_curr->icode) == (I_PUSHQ)
+        ) ? -8 : ((id_ex_curr->icode) == (I_RET) || (id_ex_curr->icode) == 
+        (I_POPQ)) ? 8 : 0);
 }
 
 long long gen_aluB()
@@ -141,7 +142,7 @@ long long gen_aluB()
         (id_ex_curr->icode) == (I_RET) || (id_ex_curr->icode) == (I_POPQ)
          || (id_ex_curr->icode) == (I_IADDQ)) ? (id_ex_curr->valb) : (
         (id_ex_curr->icode) == (I_RRMOVQ) || (id_ex_curr->icode) == 
-        (I_IRMOVQ)) ? 0 : 0);
+        (I_IRMOVQ) || (id_ex_curr->icode) == (I_JMP)) ? 0 : 0);
 }
 
 long long gen_alufun()

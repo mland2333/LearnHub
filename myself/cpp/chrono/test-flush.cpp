@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <unistd.h>
+int a = 0;
 void UpdateProgress(float progress)
 {
     /*int barWidth = 70;

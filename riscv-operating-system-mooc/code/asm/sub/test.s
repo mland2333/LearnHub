@@ -9,8 +9,8 @@
 	.global	_start		# Define entry _start
 
 _start:
-	li x6, -1		# x6 = -1
-	li x7, -2		# x7 = -2
+	li x6, 0xffeffe		# x6 = -1
+	li x7, 0xfffff		# x7 = -2
 	sub x5, x6, x7		# x5 = x6 - x7
 
 stop:
